@@ -26,17 +26,30 @@ export default function LoginPage() {
     setError("")
     setMessage("")
 
+    const trimmedEmail = email.trim()
+    const trimmedPassword = password.trim()
+
+    if (!trimmedEmail || !trimmedPassword) {
+      setError("メールアドレスとパスワードを入力してください")
+      setLoading(false)
+      return
+    }
+
     try {
       if (mode === "signup") {
         const { error: signUpError } = await supabase.auth.signUp({
-          email,
-          password,
+          email: trimmedEmail,
+          password: trimmedPassword,
         })
         if (signUpError) throw signUpError
-        setMessage("確認メールを送信しました。メールを確認してください。")
+        setMessage("アカウントを作成しました。ログインしてください。")
+        setMode("login")
       } else {
         const { error: signInError } =
-          await supabase.auth.signInWithPassword({ email, password })
+          await supabase.auth.signInWithPassword({
+            email: trimmedEmail,
+            password: trimmedPassword,
+          })
         if (signInError) throw signInError
         router.replace("/")
       }
@@ -83,8 +96,10 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={6}
-                placeholder="6文字以上"
+                placeholder="6文字以上（半角英数字）"
                 className="h-11"
+                autoComplete="current-password"
+                inputMode="text"
               />
             </div>
 
