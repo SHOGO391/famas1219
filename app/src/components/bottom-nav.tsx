@@ -15,7 +15,7 @@ const navItems = [
   { href: "/rooms", label: "会議室", icon: DoorOpen },
   { href: "/reservations/new", label: "予約", icon: PlusCircle },
   { href: "/reservations", label: "一覧", icon: ClipboardList },
-  { href: "/calendar", label: "カレンダー", icon: CalendarDays },
+  { href: "/calendar", label: "暦", icon: CalendarDays },
 ] as const
 
 export function BottomNav() {

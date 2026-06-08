@@ -13,7 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { PageHeader } from "@/components/page-header"
-import { LoadingState } from "@/components/loading-state"
+import { LoadingCardList } from "@/components/loading-state"
 import { EmptyState } from "@/components/empty-state"
 import { reservations, getRoomById } from "@/data/dummy"
 import type { Reservation } from "@/data/dummy"
@@ -43,7 +43,7 @@ export default function ReservationsPage() {
     return (
       <div>
         <PageHeader title="予約一覧" description="すべての予約" />
-        <LoadingState />
+        <LoadingCardList count={4} />
       </div>
     )
   }
@@ -71,8 +71,8 @@ export default function ReservationsPage() {
       {activeData.length === 0 ? (
         <EmptyState
           icon="📋"
-          title="予約がありません"
-          description="まだ予約が登録されていません。新規予約から会議室を予約できます"
+          title="予約はまだありません"
+          description="下の「予約」タブから会議室を予約できます"
         />
       ) : (
         <div className="px-4 pb-6 space-y-3 mt-2">
@@ -93,7 +93,7 @@ export default function ReservationsPage() {
                         </div>
                         <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                           <Clock className="h-3.5 w-3.5 shrink-0" />
-                          <span>
+                          <span className="truncate">
                             {res.date} {res.startTime}〜{res.endTime}
                           </span>
                         </div>

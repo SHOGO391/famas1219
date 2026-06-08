@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { PageHeader } from "@/components/page-header"
-import { LoadingState } from "@/components/loading-state"
+import { LoadingCardList } from "@/components/loading-state"
 import { EmptyState } from "@/components/empty-state"
 import { rooms, getReservationsByRoomId } from "@/data/dummy"
 import type { Room } from "@/data/dummy"
@@ -23,7 +23,7 @@ export default function RoomsPage() {
     return (
       <div>
         <PageHeader title="会議室一覧" description="利用可能な会議室" />
-        <LoadingState />
+        <LoadingCardList count={4} />
       </div>
     )
   }
@@ -46,8 +46,8 @@ export default function RoomsPage() {
       {displayData.length === 0 ? (
         <EmptyState
           icon="🚪"
-          title="会議室がありません"
-          description="利用可能な会議室が登録されていません"
+          title="会議室が登録されていません"
+          description="管理者に会議室の追加を依頼してください"
         />
       ) : (
         <div className="px-4 pb-6 space-y-3 mt-2">

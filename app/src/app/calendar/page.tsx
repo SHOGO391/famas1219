@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { PageHeader } from "@/components/page-header"
-import { LoadingState } from "@/components/loading-state"
+import { LoadingCardList } from "@/components/loading-state"
 import { EmptyState } from "@/components/empty-state"
 import { getReservationsByDate, getRoomById } from "@/data/dummy"
 import { Users, DoorOpen } from "lucide-react"
@@ -65,12 +65,12 @@ export default function CalendarPage() {
       </div>
 
       {loading ? (
-        <LoadingState />
+        <LoadingCardList count={3} />
       ) : dayReservations.length === 0 ? (
         <EmptyState
           icon="📅"
-          title="予約がありません"
-          description="この日はまだ予約が入っていません"
+          title="この日の予約はありません"
+          description="別の日を選択するか、新しく予約を作成してください"
         />
       ) : (
         <div className="px-4 pb-6 mt-1">

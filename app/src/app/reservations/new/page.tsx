@@ -92,7 +92,7 @@ export default function NewReservationPage() {
                 <span className="text-muted-foreground w-16 shrink-0">
                   日時
                 </span>
-                <span className="font-medium">
+                <span className="font-medium truncate">
                   {form.date} {form.startTime}〜{form.endTime}
                 </span>
               </div>
@@ -141,8 +141,7 @@ export default function NewReservationPage() {
             <SelectContent>
               {rooms.map((room) => (
                 <SelectItem key={room.id} value={room.id}>
-                  {room.emoji} {room.name}（定員{room.capacity}名・
-                  {room.floor}F）
+                  {room.emoji} {room.name}（{room.capacity}名・{room.floor}F）
                 </SelectItem>
               ))}
             </SelectContent>

@@ -34,8 +34,12 @@ export default function HomePage() {
         </h2>
         {todayReservations.length === 0 ? (
           <Card>
-            <CardContent className="py-8 text-center text-muted-foreground text-sm">
-              今日の予約はありません
+            <CardContent className="py-10 text-center">
+              <span className="text-3xl block mb-2">☀️</span>
+              <p className="font-medium text-sm">今日の予約はありません</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                のんびりした一日です
+              </p>
             </CardContent>
           </Card>
         ) : (
