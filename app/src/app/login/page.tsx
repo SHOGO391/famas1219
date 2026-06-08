@@ -6,33 +6,10 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { supabase } from "@/lib/supabase"
+import { authSignUp, authSignIn } from "@/lib/supabase"
 import { Loader2, DoorOpen } from "lucide-react"
 
 type Mode = "login" | "signup"
-
-const SUPABASE_URL = "https://fvassyordqyowvvcmwhh.supabase.co"
-const SUPABASE_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ2YXNzeW9yZHF5b3d2dmNtd2hoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5MDA3NDMsImV4cCI6MjA5NjQ3Njc0M30.btLVTT4SPUwQYH-z11MmuAYL1pO-J5hwV5I47Q7k304"
-
-async function authFetch(
-  endpoint: string,
-  body: { email: string; password: string }
-) {
-  const res = await fetch(`${SUPABASE_URL}/auth/v1/${endpoint}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      apikey: SUPABASE_ANON_KEY,
-    },
-    body: JSON.stringify(body),
-  })
-  const data = await res.json()
-  if (!res.ok) {
-    throw new Error(data.msg || data.error_description || "認証エラー")
-  }
-  return data
-}
 
 export default function LoginPage() {
   const [mode, setMode] = useState<Mode>("login")
@@ -52,37 +29,12 @@ export default function LoginPage() {
     const trimmedEmail = email.trim()
     const trimmedPassword = password.trim()
 
-    if (!trimmedEmail || !trimmedPassword) {
-      setError("メールアドレスとパスワードを入力してください")
-      setLoading(false)
-      return
-    }
-
     try {
       if (mode === "signup") {
-        const data = await authFetch("signup", {
-          email: trimmedEmail,
-          password: trimmedPassword,
-        })
-        if (data.access_token) {
-          await supabase.auth.setSession({
-            access_token: data.access_token,
-            refresh_token: data.refresh_token,
-          })
-          router.replace("/")
-        } else {
-          setMessage("アカウントを作成しました。ログインしてください。")
-          setMode("login")
-        }
+        await authSignUp(trimmedEmail, trimmedPassword)
+        router.replace("/")
       } else {
-        const data = await authFetch("token?grant_type=password", {
-          email: trimmedEmail,
-          password: trimmedPassword,
-        })
-        await supabase.auth.setSession({
-          access_token: data.access_token,
-          refresh_token: data.refresh_token,
-        })
+        await authSignIn(trimmedEmail, trimmedPassword)
         router.replace("/")
       }
     } catch (err) {
@@ -128,7 +80,7 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={6}
-                placeholder="6文字以上（半角英数字）"
+                placeholder="6文字以上"
                 className="h-11"
                 autoComplete="current-password"
               />
@@ -146,11 +98,7 @@ export default function LoginPage() {
               </p>
             )}
 
-            <Button
-              type="submit"
-              className="w-full h-11"
-              disabled={loading}
-            >
+            <Button type="submit" className="w-full h-11" disabled={loading}>
               {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               {mode === "login" ? "ログイン" : "登録する"}
             </Button>
@@ -166,9 +114,7 @@ export default function LoginPage() {
               }}
               className="text-sm text-primary underline underline-offset-2"
             >
-              {mode === "login"
-                ? "アカウントを作成する"
-                : "ログインに戻る"}
+              {mode === "login" ? "アカウントを作成する" : "ログインに戻る"}
             </button>
           </div>
         </CardContent>

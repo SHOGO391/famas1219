@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button"
 import { PageHeader } from "@/components/page-header"
 import { LoadingCardList } from "@/components/loading-state"
 import { AuthGuard } from "@/components/auth-guard"
-import { supabase, fetchMyReservations } from "@/lib/supabase"
+import { authSignOut, fetchMyReservations } from "@/lib/supabase"
 import type { Reservation } from "@/lib/supabase"
 
 const quickActions = [
@@ -45,8 +45,9 @@ function HomeContent() {
   const today = todayString()
   const todayReservations = reservations.filter((r) => r.date === today)
 
-  async function handleLogout() {
-    await supabase.auth.signOut()
+  function handleLogout() {
+    authSignOut()
+    window.location.href = "/login"
   }
 
   return (

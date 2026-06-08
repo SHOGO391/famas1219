@@ -2,40 +2,27 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { supabase } from "@/lib/supabase"
-import type { User } from "@supabase/supabase-js"
+import { getStoredUser } from "@/lib/supabase"
+import type { AuthUser } from "@/lib/supabase"
 import { LoadingCardList } from "@/components/loading-state"
 
 type AuthGuardProps = {
-  readonly children: (user: User) => React.ReactNode
+  readonly children: (user: AuthUser) => React.ReactNode
 }
 
 export function AuthGuard({ children }: AuthGuardProps) {
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<AuthUser | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user: u } }) => {
-      if (!u) {
-        router.replace("/login")
-      } else {
-        setUser(u)
-      }
-      setLoading(false)
-    })
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session?.user) {
-        router.replace("/login")
-      } else {
-        setUser(session.user)
-      }
-    })
-
-    return () => subscription.unsubscribe()
+    const stored = getStoredUser()
+    if (!stored) {
+      router.replace("/login")
+    } else {
+      setUser(stored)
+    }
+    setLoading(false)
   }, [router])
 
   if (loading) {

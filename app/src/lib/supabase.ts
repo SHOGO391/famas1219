@@ -4,38 +4,99 @@ const SUPABASE_URL = "https://fvassyordqyowvvcmwhh.supabase.co"
 const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ2YXNzeW9yZHF5b3d2dmNtd2hoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5MDA3NDMsImV4cCI6MjA5NjQ3Njc0M30.btLVTT4SPUwQYH-z11MmuAYL1pO-J5hwV5I47Q7k304"
 
-function sanitizedFetch(
-  input: RequestInfo | URL,
-  init?: RequestInit
-): Promise<Response> {
-  if (init?.headers) {
-    const sanitized: Record<string, string> = {}
-    const entries =
-      init.headers instanceof Headers
-        ? Array.from(init.headers.entries())
-        : Object.entries(init.headers as Record<string, string>)
-    for (const [key, value] of entries) {
-      sanitized[key] = String(value).replace(/[^\x09\x20-\x7E]/g, "")
-    }
-    return fetch(input, { ...init, headers: sanitized })
+// ---------- 認証（直接REST API） ----------
+
+const TOKEN_KEY = "sb-access-token"
+const REFRESH_KEY = "sb-refresh-token"
+const USER_KEY = "sb-user"
+
+function authHeaders(token?: string): Record<string, string> {
+  const t = token || (typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null)
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    apikey: SUPABASE_ANON_KEY,
   }
-  return fetch(input, init)
+  if (t) {
+    headers["Authorization"] = "Bearer " + t
+  }
+  return headers
 }
 
-let _supabase: SupabaseClient | null = null
-
-function getSupabase(): SupabaseClient {
-  if (!_supabase) {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || SUPABASE_URL
-    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || SUPABASE_ANON_KEY
-    _supabase = createClient(url, key, {
-      global: { fetch: sanitizedFetch },
-    })
-  }
-  return _supabase
+export type AuthUser = {
+  readonly id: string
+  readonly email: string
 }
 
-export const supabase = getSupabase()
+export async function authSignUp(email: string, password: string): Promise<AuthUser> {
+  const res = await fetch(SUPABASE_URL + "/auth/v1/signup", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY },
+    body: JSON.stringify({ email, password }),
+  })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.msg || "登録に失敗しました")
+  if (data.access_token) {
+    localStorage.setItem(TOKEN_KEY, data.access_token)
+    localStorage.setItem(REFRESH_KEY, data.refresh_token)
+    localStorage.setItem(USER_KEY, JSON.stringify(data.user))
+  }
+  return data.user
+}
+
+export async function authSignIn(email: string, password: string): Promise<AuthUser> {
+  const res = await fetch(SUPABASE_URL + "/auth/v1/token?grant_type=password", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY },
+    body: JSON.stringify({ email, password }),
+  })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.msg || data.error_description || "ログインに失敗しました")
+  localStorage.setItem(TOKEN_KEY, data.access_token)
+  localStorage.setItem(REFRESH_KEY, data.refresh_token)
+  localStorage.setItem(USER_KEY, JSON.stringify(data.user))
+  return data.user
+}
+
+export function authSignOut(): void {
+  localStorage.removeItem(TOKEN_KEY)
+  localStorage.removeItem(REFRESH_KEY)
+  localStorage.removeItem(USER_KEY)
+}
+
+export function getStoredUser(): AuthUser | null {
+  if (typeof window === "undefined") return null
+  const raw = localStorage.getItem(USER_KEY)
+  if (!raw) return null
+  try {
+    return JSON.parse(raw)
+  } catch {
+    return null
+  }
+}
+
+export function getAccessToken(): string | null {
+  if (typeof window === "undefined") return null
+  return localStorage.getItem(TOKEN_KEY)
+}
+
+// ---------- Supabaseデータクライアント（認証トークン付きfetch） ----------
+
+function createAuthClient(): SupabaseClient {
+  const token = typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null
+  return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: {
+      headers: token ? { Authorization: "Bearer " + token } : {},
+    },
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  })
+}
+
+export function getClient(): SupabaseClient {
+  return createAuthClient()
+}
 
 // ---------- 型定義 ----------
 
@@ -69,7 +130,8 @@ export type Reservation = {
 // ---------- Rooms ----------
 
 export async function fetchRooms(): Promise<readonly Room[]> {
-  const { data, error } = await supabase
+  const client = getClient()
+  const { data, error } = await client
     .from("rooms")
     .select("*, equipment(id, name)")
     .order("floor")
@@ -81,7 +143,8 @@ export async function fetchRooms(): Promise<readonly Room[]> {
 // ---------- Reservations ----------
 
 export async function fetchMyReservations(): Promise<readonly Reservation[]> {
-  const { data, error } = await supabase
+  const client = getClient()
+  const { data, error } = await client
     .from("reservations")
     .select("*, rooms(id, name, emoji), participants(id, name)")
     .order("date")
@@ -94,7 +157,8 @@ export async function fetchMyReservations(): Promise<readonly Reservation[]> {
 export async function fetchReservationsByDate(
   date: string
 ): Promise<readonly Reservation[]> {
-  const { data, error } = await supabase
+  const client = getClient()
+  const { data, error } = await client
     .from("reservations")
     .select("*, rooms(id, name, emoji), participants(id, name)")
     .eq("date", date)
@@ -117,12 +181,11 @@ export type CreateReservationInput = {
 export async function createReservation(
   input: CreateReservationInput
 ): Promise<Reservation> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = getStoredUser()
   if (!user) throw new Error("ログインが必要です")
 
-  const { data: reservation, error } = await supabase
+  const client = getClient()
+  const { data: reservation, error } = await client
     .from("reservations")
     .insert({
       room_id: input.room_id,
@@ -139,7 +202,7 @@ export async function createReservation(
   if (error) throw new Error(error.message)
 
   if (input.participantNames.length > 0) {
-    const { error: pError } = await supabase.from("participants").insert(
+    const { error: pError } = await client.from("participants").insert(
       input.participantNames.map((name) => ({
         reservation_id: reservation.id,
         name,
@@ -152,7 +215,8 @@ export async function createReservation(
 }
 
 export async function deleteReservation(id: string): Promise<void> {
-  const { error } = await supabase.from("reservations").delete().eq("id", id)
+  const client = getClient()
+  const { error } = await client.from("reservations").delete().eq("id", id)
   if (error) throw new Error(error.message)
 }
 
@@ -167,7 +231,8 @@ export async function updateReservation(
     readonly room_id?: string
   }
 ): Promise<void> {
-  const { error } = await supabase
+  const client = getClient()
+  const { error } = await client
     .from("reservations")
     .update(updates)
     .eq("id", id)
