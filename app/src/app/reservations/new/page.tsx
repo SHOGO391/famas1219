@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,8 +14,19 @@ import {
 } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { PageHeader } from "@/components/page-header"
-import { rooms } from "@/data/dummy"
-import { CheckCircle2, DoorOpen, Clock, Users, User, Tag } from "lucide-react"
+import { LoadingCardList } from "@/components/loading-state"
+import { AuthGuard } from "@/components/auth-guard"
+import { fetchRooms, createReservation } from "@/lib/supabase"
+import type { Room } from "@/lib/supabase"
+import {
+  CheckCircle2,
+  DoorOpen,
+  Clock,
+  Users,
+  User,
+  Tag,
+  Loader2,
+} from "lucide-react"
 
 type FormData = {
   readonly roomId: string
@@ -27,32 +38,69 @@ type FormData = {
   readonly participants: string
 }
 
+function todayString() {
+  return new Date().toISOString().slice(0, 10)
+}
+
 const initialForm: FormData = {
   roomId: "",
   title: "",
   organizer: "",
-  date: "2026-06-10",
+  date: todayString(),
   startTime: "10:00",
   endTime: "11:00",
   participants: "2",
 }
 
-export default function NewReservationPage() {
+function NewReservationContent() {
   const [form, setForm] = useState<FormData>(initialForm)
+  const [rooms, setRooms] = useState<readonly Room[]>([])
+  const [loadingRooms, setLoadingRooms] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [error, setError] = useState("")
+
+  useEffect(() => {
+    fetchRooms()
+      .then(setRooms)
+      .catch(() => setRooms([]))
+      .finally(() => setLoadingRooms(false))
+  }, [])
 
   function updateField(field: keyof FormData, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }))
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setSubmitted(true)
+    setSubmitting(true)
+    setError("")
+
+    try {
+      const count = parseInt(form.participants, 10) || 1
+      const participantNames = Array.from({ length: count }, (_, i) => `参加者${i + 1}`)
+
+      await createReservation({
+        room_id: form.roomId,
+        title: form.title,
+        organizer: form.organizer,
+        date: form.date,
+        start_time: form.startTime,
+        end_time: form.endTime,
+        participantNames,
+      })
+      setSubmitted(true)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "予約に失敗しました")
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   function handleReset() {
-    setForm(initialForm)
+    setForm({ ...initialForm, date: todayString() })
     setSubmitted(false)
+    setError("")
   }
 
   if (submitted) {
@@ -64,16 +112,14 @@ export default function NewReservationPage() {
           <CheckCircle2 className="h-16 w-16 text-green-500 mb-4" />
           <h2 className="text-lg font-bold mb-1">予約が完了しました</h2>
           <p className="text-sm text-muted-foreground mb-6">
-            以下の内容で予約しました
+            データベースに保存されました
           </p>
 
           <Card className="w-full">
             <CardContent className="p-4 space-y-3">
               <div className="flex items-center gap-2 text-sm">
                 <DoorOpen className="h-4 w-4 text-muted-foreground shrink-0" />
-                <span className="text-muted-foreground w-16 shrink-0">
-                  会議室
-                </span>
+                <span className="text-muted-foreground w-16 shrink-0">会議室</span>
                 <span className="font-medium">
                   {room?.emoji} {room?.name ?? "未選択"}
                 </span>
@@ -81,17 +127,13 @@ export default function NewReservationPage() {
               <Separator />
               <div className="flex items-center gap-2 text-sm">
                 <Tag className="h-4 w-4 text-muted-foreground shrink-0" />
-                <span className="text-muted-foreground w-16 shrink-0">
-                  タイトル
-                </span>
+                <span className="text-muted-foreground w-16 shrink-0">タイトル</span>
                 <span className="font-medium truncate">{form.title}</span>
               </div>
               <Separator />
               <div className="flex items-center gap-2 text-sm">
                 <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
-                <span className="text-muted-foreground w-16 shrink-0">
-                  日時
-                </span>
+                <span className="text-muted-foreground w-16 shrink-0">日時</span>
                 <span className="font-medium truncate">
                   {form.date} {form.startTime}〜{form.endTime}
                 </span>
@@ -99,17 +141,13 @@ export default function NewReservationPage() {
               <Separator />
               <div className="flex items-center gap-2 text-sm">
                 <User className="h-4 w-4 text-muted-foreground shrink-0" />
-                <span className="text-muted-foreground w-16 shrink-0">
-                  主催者
-                </span>
+                <span className="text-muted-foreground w-16 shrink-0">主催者</span>
                 <span className="font-medium">{form.organizer}</span>
               </div>
               <Separator />
               <div className="flex items-center gap-2 text-sm">
                 <Users className="h-4 w-4 text-muted-foreground shrink-0" />
-                <span className="text-muted-foreground w-16 shrink-0">
-                  参加者
-                </span>
+                <span className="text-muted-foreground w-16 shrink-0">参加者</span>
                 <span className="font-medium">{form.participants}名</span>
               </div>
             </CardContent>
@@ -119,6 +157,15 @@ export default function NewReservationPage() {
             続けて予約する
           </Button>
         </div>
+      </div>
+    )
+  }
+
+  if (loadingRooms) {
+    return (
+      <div>
+        <PageHeader title="予約作成" description="新しい予約を登録" />
+        <LoadingCardList count={3} />
       </div>
     )
   }
@@ -223,10 +270,25 @@ export default function NewReservationPage() {
           />
         </div>
 
-        <Button type="submit" className="w-full h-12 text-base">
+        {error && (
+          <p className="text-sm text-destructive bg-destructive/10 rounded-lg p-3">
+            {error}
+          </p>
+        )}
+
+        <Button
+          type="submit"
+          className="w-full h-12 text-base"
+          disabled={submitting}
+        >
+          {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
           予約を確定する
         </Button>
       </form>
     </div>
   )
+}
+
+export default function NewReservationPage() {
+  return <AuthGuard>{() => <NewReservationContent />}</AuthGuard>
 }

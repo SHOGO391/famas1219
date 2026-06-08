@@ -6,28 +6,57 @@ import { Badge } from "@/components/ui/badge"
 import { PageHeader } from "@/components/page-header"
 import { LoadingCardList } from "@/components/loading-state"
 import { EmptyState } from "@/components/empty-state"
-import { getReservationsByDate, getRoomById } from "@/data/dummy"
+import { AuthGuard } from "@/components/auth-guard"
+import { fetchReservationsByDate } from "@/lib/supabase"
+import type { Reservation } from "@/lib/supabase"
 import { Users, DoorOpen } from "lucide-react"
 
-const dates = [
-  { date: "2026-06-08", label: "6/8", weekday: "月" },
-  { date: "2026-06-09", label: "6/9", weekday: "火" },
-  { date: "2026-06-10", label: "6/10", weekday: "水" },
-  { date: "2026-06-11", label: "6/11", weekday: "木" },
-  { date: "2026-06-12", label: "6/12", weekday: "金" },
-] as const
+function buildDates(): readonly { date: string; label: string; weekday: string }[] {
+  const days = ["日", "月", "火", "水", "木", "金", "土"]
+  const result: { date: string; label: string; weekday: string }[] = []
+  const today = new Date()
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(today)
+    d.setDate(today.getDate() + i)
+    result.push({
+      date: d.toISOString().slice(0, 10),
+      label: `${d.getMonth() + 1}/${d.getDate()}`,
+      weekday: days[d.getDay()],
+    })
+  }
+  return result
+}
 
-export default function CalendarPage() {
+function CalendarContent() {
+  const dates = buildDates()
   const [loading, setLoading] = useState(true)
-  const [selectedDate, setSelectedDate] = useState("2026-06-08")
+  const [selectedDate, setSelectedDate] = useState(dates[0].date)
+  const [reservations, setReservations] = useState<readonly Reservation[]>([])
+  const [dateCounts, setDateCounts] = useState<Record<string, number>>({})
+
+  useEffect(() => {
+    // 全日付の件数を取得
+    Promise.all(
+      dates.map(async (d) => {
+        const res = await fetchReservationsByDate(d.date)
+        return { date: d.date, count: res.length }
+      })
+    ).then((results) => {
+      const counts: Record<string, number> = {}
+      for (const r of results) {
+        counts[r.date] = r.count
+      }
+      setDateCounts(counts)
+    })
+  }, [])
 
   useEffect(() => {
     setLoading(true)
-    const timer = setTimeout(() => setLoading(false), 600)
-    return () => clearTimeout(timer)
+    fetchReservationsByDate(selectedDate)
+      .then(setReservations)
+      .catch(() => setReservations([]))
+      .finally(() => setLoading(false))
   }, [selectedDate])
-
-  const dayReservations = getReservationsByDate(selectedDate)
 
   return (
     <div>
@@ -36,7 +65,7 @@ export default function CalendarPage() {
       <div className="px-4 pt-3 pb-2">
         <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-none">
           {dates.map((d) => {
-            const count = getReservationsByDate(d.date).length
+            const count = dateCounts[d.date] ?? 0
             const isSelected = selectedDate === d.date
             return (
               <button
@@ -66,7 +95,7 @@ export default function CalendarPage() {
 
       {loading ? (
         <LoadingCardList count={3} />
-      ) : dayReservations.length === 0 ? (
+      ) : reservations.length === 0 ? (
         <EmptyState
           icon="📅"
           title="この日の予約はありません"
@@ -75,41 +104,44 @@ export default function CalendarPage() {
       ) : (
         <div className="px-4 pb-6 mt-1">
           <div className="relative space-y-3">
-            {dayReservations.map((res) => {
-              const room = getRoomById(res.roomId)
-              return (
-                <div key={res.id} className="flex gap-3">
-                  <div className="w-14 shrink-0 text-right pt-1">
-                    <p className="text-sm font-semibold">{res.startTime}</p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {res.endTime}
-                    </p>
-                  </div>
-                  <Card className="flex-1 border-l-4 border-l-primary">
-                    <CardContent className="p-3">
-                      <p className="font-semibold text-sm truncate">
-                        {res.title}
-                      </p>
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
-                        <DoorOpen className="h-3 w-3" />
-                        <span>
-                          {room?.emoji} {room?.name}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
-                        <Users className="h-3 w-3" />
-                        <span>
-                          {res.organizer} ・ {res.participants}名
-                        </span>
-                      </div>
-                    </CardContent>
-                  </Card>
+            {reservations.map((res) => (
+              <div key={res.id} className="flex gap-3">
+                <div className="w-14 shrink-0 text-right pt-1">
+                  <p className="text-sm font-semibold">
+                    {res.start_time.slice(0, 5)}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {res.end_time.slice(0, 5)}
+                  </p>
                 </div>
-              )
-            })}
+                <Card className="flex-1 border-l-4 border-l-primary">
+                  <CardContent className="p-3">
+                    <p className="font-semibold text-sm truncate">
+                      {res.title}
+                    </p>
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
+                      <DoorOpen className="h-3 w-3" />
+                      <span>
+                        {res.rooms?.emoji} {res.rooms?.name}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
+                      <Users className="h-3 w-3" />
+                      <span>
+                        {res.organizer} ・ {res.participants.length}名
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            ))}
           </div>
         </div>
       )}
     </div>
   )
+}
+
+export default function CalendarPage() {
+  return <AuthGuard>{() => <CalendarContent />}</AuthGuard>
 }
