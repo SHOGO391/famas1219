@@ -4,13 +4,33 @@ const SUPABASE_URL = "https://fvassyordqyowvvcmwhh.supabase.co"
 const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ2YXNzeW9yZHF5b3d2dmNtd2hoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5MDA3NDMsImV4cCI6MjA5NjQ3Njc0M30.btLVTT4SPUwQYH-z11MmuAYL1pO-J5hwV5I47Q7k304"
 
+function sanitizedFetch(
+  input: RequestInfo | URL,
+  init?: RequestInit
+): Promise<Response> {
+  if (init?.headers) {
+    const sanitized: Record<string, string> = {}
+    const entries =
+      init.headers instanceof Headers
+        ? Array.from(init.headers.entries())
+        : Object.entries(init.headers as Record<string, string>)
+    for (const [key, value] of entries) {
+      sanitized[key] = String(value).replace(/[^\x09\x20-\x7E]/g, "")
+    }
+    return fetch(input, { ...init, headers: sanitized })
+  }
+  return fetch(input, init)
+}
+
 let _supabase: SupabaseClient | null = null
 
 function getSupabase(): SupabaseClient {
   if (!_supabase) {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL || SUPABASE_URL
     const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || SUPABASE_ANON_KEY
-    _supabase = createClient(url, key)
+    _supabase = createClient(url, key, {
+      global: { fetch: sanitizedFetch },
+    })
   }
   return _supabase
 }
