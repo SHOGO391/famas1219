@@ -11,6 +11,29 @@ import { Loader2, DoorOpen } from "lucide-react"
 
 type Mode = "login" | "signup"
 
+const SUPABASE_URL = "https://fvassyordqyowvvcmwhh.supabase.co"
+const SUPABASE_ANON_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ2YXNzeW9yZHF5b3d2dmNtd2hoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5MDA3NDMsImV4cCI6MjA5NjQ3Njc0M30.btLVTT4SPUwQYH-z11MmuAYL1pO-J5hwV5I47Q7k304"
+
+async function authFetch(
+  endpoint: string,
+  body: { email: string; password: string }
+) {
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/${endpoint}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: SUPABASE_ANON_KEY,
+    },
+    body: JSON.stringify(body),
+  })
+  const data = await res.json()
+  if (!res.ok) {
+    throw new Error(data.msg || data.error_description || "認証エラー")
+  }
+  return data
+}
+
 export default function LoginPage() {
   const [mode, setMode] = useState<Mode>("login")
   const [email, setEmail] = useState("")
@@ -37,20 +60,29 @@ export default function LoginPage() {
 
     try {
       if (mode === "signup") {
-        const { error: signUpError } = await supabase.auth.signUp({
+        const data = await authFetch("signup", {
           email: trimmedEmail,
           password: trimmedPassword,
         })
-        if (signUpError) throw signUpError
-        setMessage("アカウントを作成しました。ログインしてください。")
-        setMode("login")
-      } else {
-        const { error: signInError } =
-          await supabase.auth.signInWithPassword({
-            email: trimmedEmail,
-            password: trimmedPassword,
+        if (data.access_token) {
+          await supabase.auth.setSession({
+            access_token: data.access_token,
+            refresh_token: data.refresh_token,
           })
-        if (signInError) throw signInError
+          router.replace("/")
+        } else {
+          setMessage("アカウントを作成しました。ログインしてください。")
+          setMode("login")
+        }
+      } else {
+        const data = await authFetch("token?grant_type=password", {
+          email: trimmedEmail,
+          password: trimmedPassword,
+        })
+        await supabase.auth.setSession({
+          access_token: data.access_token,
+          refresh_token: data.refresh_token,
+        })
         router.replace("/")
       }
     } catch (err) {
@@ -99,7 +131,6 @@ export default function LoginPage() {
                 placeholder="6文字以上（半角英数字）"
                 className="h-11"
                 autoComplete="current-password"
-                inputMode="text"
               />
             </div>
 
