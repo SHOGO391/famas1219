@@ -8,6 +8,7 @@ import { AuthGuard } from "@/components/auth-guard"
 import { fetchReservationsByMonth } from "@/lib/supabase"
 import type { Reservation } from "@/lib/supabase"
 import { ChevronLeft, ChevronRight, Users, DoorOpen } from "lucide-react"
+import { RoomImage } from "@/components/room-image"
 
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"] as const
 
@@ -258,10 +259,10 @@ function CalendarContent() {
                           {res.title}
                         </p>
                         <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
-                          <DoorOpen className="h-3 w-3" />
-                          <span>
-                            {res.rooms?.emoji} {res.rooms?.name}
-                          </span>
+                          {res.rooms?.emoji && (
+                            <RoomImage emoji={res.rooms.emoji} name={res.rooms.name ?? ""} size="sm" />
+                          )}
+                          <span>{res.rooms?.name}</span>
                         </div>
                         <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
                           <Users className="h-3 w-3" />

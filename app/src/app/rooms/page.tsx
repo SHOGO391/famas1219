@@ -10,6 +10,7 @@ import { AuthGuard } from "@/components/auth-guard"
 import { fetchRooms } from "@/lib/supabase"
 import type { Room } from "@/lib/supabase"
 import { Users, MapPin, Monitor } from "lucide-react"
+import { RoomImage } from "@/components/room-image"
 
 function RoomsContent() {
   const [rooms, setRooms] = useState<readonly Room[]>([])
@@ -40,9 +41,7 @@ function RoomsContent() {
             <Card key={room.id}>
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
-                  <span className="text-3xl leading-none mt-0.5">
-                    {room.emoji}
-                  </span>
+                  <RoomImage emoji={room.emoji} name={room.name} size="lg" />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between">
                       <h3 className="font-semibold text-base">{room.name}</h3>

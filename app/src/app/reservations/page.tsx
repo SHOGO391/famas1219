@@ -18,6 +18,7 @@ import { AuthGuard } from "@/components/auth-guard"
 import { fetchMyReservations, deleteReservation } from "@/lib/supabase"
 import type { Reservation } from "@/lib/supabase"
 import { Clock, DoorOpen, Users, Trash2 } from "lucide-react"
+import { RoomImage } from "@/components/room-image"
 
 function ReservationsContent() {
   const [data, setData] = useState<readonly Reservation[]>([])
@@ -80,10 +81,10 @@ function ReservationsContent() {
                     <p className="font-semibold truncate">{res.title}</p>
                     <div className="space-y-0.5 mt-1.5">
                       <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                        <DoorOpen className="h-3.5 w-3.5 shrink-0" />
-                        <span>
-                          {res.rooms?.emoji} {res.rooms?.name}
-                        </span>
+                        {res.rooms?.emoji && (
+                          <RoomImage emoji={res.rooms.emoji} name={res.rooms.name ?? ""} size="sm" />
+                        )}
+                        <span>{res.rooms?.name}</span>
                       </div>
                       <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                         <Clock className="h-3.5 w-3.5 shrink-0" />

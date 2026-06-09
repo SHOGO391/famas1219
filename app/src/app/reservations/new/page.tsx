@@ -27,6 +27,7 @@ import {
   Tag,
   Loader2,
 } from "lucide-react"
+import { RoomImage } from "@/components/room-image"
 
 type FormData = {
   readonly roomId: string
@@ -120,8 +121,9 @@ function NewReservationContent() {
               <div className="flex items-center gap-2 text-sm">
                 <DoorOpen className="h-4 w-4 text-muted-foreground shrink-0" />
                 <span className="text-muted-foreground w-16 shrink-0">会議室</span>
-                <span className="font-medium">
-                  {room?.emoji} {room?.name ?? "未選択"}
+                <span className="font-medium flex items-center gap-1.5">
+                  {room?.emoji && <RoomImage emoji={room.emoji} name={room.name} size="sm" />}
+                  {room?.name ?? "未選択"}
                 </span>
               </div>
               <Separator />
@@ -188,7 +190,10 @@ function NewReservationContent() {
             <SelectContent>
               {rooms.map((room) => (
                 <SelectItem key={room.id} value={room.id}>
-                  {room.emoji} {room.name}（{room.capacity}名・{room.floor}F）
+                  <span className="flex items-center gap-1.5">
+                    <RoomImage emoji={room.emoji} name={room.name} size="sm" />
+                    {room.name}（{room.capacity}名・{room.floor}F）
+                  </span>
                 </SelectItem>
               ))}
             </SelectContent>

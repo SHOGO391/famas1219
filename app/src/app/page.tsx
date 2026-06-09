@@ -12,6 +12,7 @@ import {
   LogOut,
 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
+import { RoomImage } from "@/components/room-image"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { PageHeader } from "@/components/page-header"
@@ -98,10 +99,10 @@ function HomeContent() {
                         </span>
                       </div>
                       <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-0.5">
-                        <DoorOpen className="h-3.5 w-3.5 shrink-0" />
-                        <span>
-                          {res.rooms?.emoji} {res.rooms?.name}
-                        </span>
+                        {res.rooms?.emoji && (
+                          <RoomImage emoji={res.rooms.emoji} name={res.rooms.name ?? ""} size="sm" />
+                        )}
+                        <span>{res.rooms?.name}</span>
                       </div>
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
                         <Users className="h-3 w-3 shrink-0" />
