@@ -5,13 +5,6 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { PageHeader } from "@/components/page-header"
 import { LoadingCardList } from "@/components/loading-state"
@@ -179,25 +172,20 @@ function NewReservationContent() {
       <form onSubmit={handleSubmit} className="px-4 py-4 space-y-5">
         <div className="space-y-2">
           <Label htmlFor="room">会議室 *</Label>
-          <Select
+          <select
+            id="room"
             value={form.roomId}
-            onValueChange={(v) => updateField("roomId", v ?? "")}
+            onChange={(e) => updateField("roomId", e.target.value)}
             required
+            className="h-11 w-full rounded-lg border border-input bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-3 focus:ring-ring/50"
           >
-            <SelectTrigger id="room" className="h-11">
-              <SelectValue placeholder="選択してください" />
-            </SelectTrigger>
-            <SelectContent>
-              {rooms.map((room) => (
-                <SelectItem key={room.id} value={room.id}>
-                  <span className="flex items-center gap-1.5">
-                    <RoomImage emoji={room.emoji} name={room.name} size="sm" />
-                    {room.name}（{room.capacity}名・{room.floor}F）
-                  </span>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <option value="" disabled>選択してください</option>
+            {rooms.map((room) => (
+              <option key={room.id} value={room.id}>
+                {room.name}（{room.capacity}名・{room.floor}F）
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="space-y-2">
