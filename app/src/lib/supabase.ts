@@ -220,6 +220,26 @@ export async function deleteReservation(id: string): Promise<void> {
   if (error) throw new Error(error.message)
 }
 
+export async function fetchReservationsByMonth(
+  year: number,
+  month: number
+): Promise<readonly Reservation[]> {
+  const startDate = `${year}-${String(month + 1).padStart(2, "0")}-01`
+  const lastDay = new Date(year, month + 1, 0).getDate()
+  const endDate = `${year}-${String(month + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`
+
+  const client = getClient()
+  const { data, error } = await client
+    .from("reservations")
+    .select("*, rooms(id, name, emoji), participants(id, name)")
+    .gte("date", startDate)
+    .lte("date", endDate)
+    .order("start_time")
+
+  if (error) throw new Error(error.message)
+  return data ?? []
+}
+
 export async function updateReservation(
   id: string,
   updates: {
