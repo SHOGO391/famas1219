@@ -36,7 +36,7 @@ function RoomsContent() {
           description="管理者に会議室の追加を依頼してください"
         />
       ) : (
-        <div className="px-4 pb-6 space-y-3 mt-3">
+        <div className="px-4 pb-6 space-y-3 mt-3 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0 lg:mt-4">
           {rooms.map((room) => (
             <Card key={room.id}>
               <CardContent className="p-4">

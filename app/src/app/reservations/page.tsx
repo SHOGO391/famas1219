@@ -72,7 +72,7 @@ function ReservationsContent() {
           description="下の「予約」タブから会議室を予約できます"
         />
       ) : (
-        <div className="px-4 pb-6 space-y-3 mt-2">
+        <div className="px-4 pb-6 space-y-3 mt-2 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0">
           {data.map((res) => (
             <Card key={res.id}>
               <CardContent className="p-4">

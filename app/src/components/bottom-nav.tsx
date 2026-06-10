@@ -21,8 +21,11 @@ const navItems = [
 export function BottomNav() {
   const pathname = usePathname()
 
+  // ログイン画面では出さない / PC（lg以上）ではサイドバーに切り替わるため非表示
+  if (pathname === "/login") return null
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 border-t bg-background z-50">
+    <nav className="fixed bottom-0 left-0 right-0 border-t bg-background z-50 lg:hidden">
       <div className="flex justify-around items-center h-16 max-w-md mx-auto">
         {navItems.map((item) => {
           const isActive =

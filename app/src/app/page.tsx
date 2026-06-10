@@ -52,10 +52,11 @@ function HomeContent() {
   }
 
   return (
-    <div>
+    <div className="lg:flex lg:flex-col lg:flex-1 lg:min-h-0">
       <PageHeader title="会議室予約" description="今日の予約状況を確認" />
 
-      <div className="px-4 pt-2 flex justify-end">
+      {/* PCでは左サイドバー下部のログアウトを使うため非表示。スマホは下部ナビに無いのでここに残す */}
+      <div className="px-4 pt-2 flex justify-end lg:hidden">
         <Button
           variant="ghost"
           size="sm"
@@ -67,14 +68,15 @@ function HomeContent() {
         </Button>
       </div>
 
-      <section className="px-4 py-2">
+      {/* PCでは縦に伸ばして下の余白を埋める（lg:flex-1） */}
+      <section className="px-4 py-2 lg:flex-1 lg:flex lg:flex-col lg:min-h-0">
         <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
           今日の予約（{loading ? "..." : todayReservations.length}件）
         </h2>
         {loading ? (
           <LoadingCardList count={2} />
         ) : todayReservations.length === 0 ? (
-          <Card>
+          <Card className="lg:flex-1 lg:flex lg:flex-col lg:justify-center">
             <CardContent className="py-10 text-center">
               <span className="text-3xl block mb-2">☀️</span>
               <p className="font-medium text-sm">今日の予約はありません</p>
@@ -84,7 +86,7 @@ function HomeContent() {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0">
             {todayReservations.map((res) => (
               <Card key={res.id}>
                 <CardContent className="p-4">
@@ -126,7 +128,7 @@ function HomeContent() {
         <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
           クイックアクション
         </h2>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {quickActions.map((action) => {
             const Icon = action.icon
             return (

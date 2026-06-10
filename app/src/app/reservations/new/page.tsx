@@ -102,7 +102,7 @@ function NewReservationContent() {
     return (
       <div>
         <PageHeader title="予約作成" description="新しい予約を登録" />
-        <div className="px-4 py-8 flex flex-col items-center">
+        <div className="px-4 py-8 flex flex-col items-center lg:max-w-xl lg:mx-auto">
           <CheckCircle2 className="h-16 w-16 text-green-500 mb-4" />
           <h2 className="text-lg font-bold mb-1">予約が完了しました</h2>
           <p className="text-sm text-muted-foreground mb-6">
@@ -169,7 +169,7 @@ function NewReservationContent() {
     <div>
       <PageHeader title="予約作成" description="新しい予約を登録" />
 
-      <form onSubmit={handleSubmit} className="px-4 py-4 space-y-5">
+      <form onSubmit={handleSubmit} className="px-4 py-4 space-y-5 lg:max-w-xl lg:mx-auto">
         <div className="space-y-2">
           <Label htmlFor="room">会議室 *</Label>
           <select
