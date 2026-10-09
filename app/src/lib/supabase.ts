@@ -1,104 +1,29 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js"
+import { createSessionAuth } from "./auth-session"
+export type { AuthUser } from "./auth-session"
 
-const SUPABASE_URL = "https://fvassyordqyowvvcmwhh.supabase.co"
-const SUPABASE_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ2YXNzeW9yZHF5b3d2dmNtd2hoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5MDA3NDMsImV4cCI6MjA5NjQ3Njc0M30.btLVTT4SPUwQYH-z11MmuAYL1pO-J5hwV5I47Q7k304"
-
-// ---------- 認証（直接REST API） ----------
-
-const TOKEN_KEY = "sb-access-token"
-const REFRESH_KEY = "sb-refresh-token"
-const USER_KEY = "sb-user"
-
-function authHeaders(token?: string): Record<string, string> {
-  const t = token || (typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null)
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    apikey: SUPABASE_ANON_KEY,
-  }
-  if (t) {
-    headers["Authorization"] = "Bearer " + t
-  }
-  return headers
-}
-
-export type AuthUser = {
-  readonly id: string
-  readonly email: string
-}
-
-export async function authSignUp(email: string, password: string): Promise<AuthUser> {
-  const res = await fetch(SUPABASE_URL + "/auth/v1/signup", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY },
-    body: JSON.stringify({ email, password }),
-  })
-  const data = await res.json()
-  if (!res.ok) throw new Error(data.msg || "登録に失敗しました")
-  if (data.access_token) {
-    localStorage.setItem(TOKEN_KEY, data.access_token)
-    localStorage.setItem(REFRESH_KEY, data.refresh_token)
-    localStorage.setItem(USER_KEY, JSON.stringify(data.user))
-  }
-  return data.user
-}
-
-export async function authSignIn(email: string, password: string): Promise<AuthUser> {
-  const res = await fetch(SUPABASE_URL + "/auth/v1/token?grant_type=password", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY },
-    body: JSON.stringify({ email, password }),
-  })
-  const data = await res.json()
-  if (!res.ok) throw new Error(data.msg || data.error_description || "ログインに失敗しました")
-  localStorage.setItem(TOKEN_KEY, data.access_token)
-  localStorage.setItem(REFRESH_KEY, data.refresh_token)
-  localStorage.setItem(USER_KEY, JSON.stringify(data.user))
-  return data.user
-}
-
-export function authSignOut(): void {
-  localStorage.removeItem(TOKEN_KEY)
-  localStorage.removeItem(REFRESH_KEY)
-  localStorage.removeItem(USER_KEY)
-}
-
-export function getStoredUser(): AuthUser | null {
-  if (typeof window === "undefined") return null
-  const raw = localStorage.getItem(USER_KEY)
-  if (!raw) return null
-  try {
-    return JSON.parse(raw)
-  } catch {
-    return null
-  }
-}
-
-export function getAccessToken(): string | null {
-  if (typeof window === "undefined") return null
-  return localStorage.getItem(TOKEN_KEY)
-}
-
-// ---------- Supabaseデータクライアント（認証トークン付きfetch） ----------
-
-function createAuthClient(): SupabaseClient {
-  const token = typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null
-  return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    global: {
-      headers: token ? { Authorization: "Bearer " + token } : {},
-    },
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
-  })
-}
+let client: SupabaseClient | undefined
+let sessionAuth: ReturnType<typeof createSessionAuth> | undefined
 
 export function getClient(): SupabaseClient {
-  return createAuthClient()
+  if (client) return client
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (!url || !key) throw new Error("Supabase configuration is missing. See app/.env.example.")
+  client = createClient(url, key, {
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+  })
+  return client
 }
 
-// ---------- 型定義 ----------
+function auth() {
+  return sessionAuth ??= createSessionAuth(getClient(), typeof window === "undefined" ? undefined : window.localStorage)
+}
+export const getCurrentUser = () => auth().currentUser()
+export const authSignIn = (email: string, password: string) => auth().signIn(email, password)
+export const authSignUp = (email: string, password: string) => auth().signUp(email, password)
+export const authSignOut = () => auth().signOut()
+export const onAuthChange = (callback: Parameters<ReturnType<typeof createSessionAuth>["subscribe"]>[0]) => auth().subscribe(callback)
 
 export type Room = {
   readonly id: string
@@ -181,7 +106,7 @@ export type CreateReservationInput = {
 export async function createReservation(
   input: CreateReservationInput
 ): Promise<Reservation> {
-  const user = getStoredUser()
+  const user = await getCurrentUser()
   if (!user) throw new Error("ログインが必要です")
 
   const client = getClient()

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import {
   DoorOpen,
   PlusCircle,
@@ -35,6 +36,8 @@ function todayString() {
 function HomeContent() {
   const [reservations, setReservations] = useState<readonly Reservation[]>([])
   const [loading, setLoading] = useState(true)
+  const [loggingOut, setLoggingOut] = useState(false)
+  const router = useRouter()
 
   useEffect(() => {
     fetchMyReservations()
@@ -46,9 +49,14 @@ function HomeContent() {
   const today = todayString()
   const todayReservations = reservations.filter((r) => r.date === today)
 
-  function handleLogout() {
-    authSignOut()
-    window.location.href = "/login"
+  async function handleLogout() {
+    setLoggingOut(true)
+    try {
+      await authSignOut()
+      router.replace("/login")
+    } catch {
+      router.replace("/login?logout=unconfirmed")
+    } finally { setLoggingOut(false) }
   }
 
   return (
@@ -60,12 +68,14 @@ function HomeContent() {
           variant="ghost"
           size="sm"
           onClick={handleLogout}
+          disabled={loggingOut}
           className="text-xs text-muted-foreground"
         >
           <LogOut className="h-3.5 w-3.5 mr-1" />
           ログアウト
         </Button>
       </div>
+
 
       <section className="px-4 py-2">
         <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">

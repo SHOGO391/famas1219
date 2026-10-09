@@ -17,7 +17,7 @@ import { EmptyState } from "@/components/empty-state"
 import { AuthGuard } from "@/components/auth-guard"
 import { fetchMyReservations, deleteReservation } from "@/lib/supabase"
 import type { Reservation } from "@/lib/supabase"
-import { Clock, DoorOpen, Users, Trash2 } from "lucide-react"
+import { Clock, Users, Trash2 } from "lucide-react"
 import { RoomImage } from "@/components/room-image"
 
 function ReservationsContent() {
@@ -27,7 +27,6 @@ function ReservationsContent() {
   const [deleting, setDeleting] = useState(false)
 
   const loadData = useCallback(() => {
-    setLoading(true)
     fetchMyReservations()
       .then(setData)
       .catch(() => setData([]))
@@ -44,6 +43,7 @@ function ReservationsContent() {
     try {
       await deleteReservation(cancelTarget.id)
       setCancelTarget(null)
+      setLoading(true)
       loadData()
     } catch {
       // エラー時もダイアログを閉じる

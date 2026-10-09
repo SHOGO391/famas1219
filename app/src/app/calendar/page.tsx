@@ -7,7 +7,7 @@ import { EmptyState } from "@/components/empty-state"
 import { AuthGuard } from "@/components/auth-guard"
 import { fetchReservationsByMonth } from "@/lib/supabase"
 import type { Reservation } from "@/lib/supabase"
-import { ChevronLeft, ChevronRight, Users, DoorOpen } from "lucide-react"
+import { ChevronLeft, ChevronRight, Users } from "lucide-react"
 import { RoomImage } from "@/components/room-image"
 
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"] as const
@@ -64,11 +64,12 @@ function CalendarContent() {
   const days = getMonthDays(currentYear, currentMonth)
 
   useEffect(() => {
-    setLoading(true)
+    let active = true
     fetchReservationsByMonth(currentYear, currentMonth)
-      .then(setReservations)
-      .catch(() => setReservations([]))
-      .finally(() => setLoading(false))
+      .then(rows => { if (active) setReservations(rows) })
+      .catch(() => { if (active) setReservations([]) })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
   }, [currentYear, currentMonth])
 
   const reservationsByDate = useMemo(() => {
@@ -85,6 +86,7 @@ function CalendarContent() {
     : []
 
   const handlePrevMonth = () => {
+    setLoading(true)
     if (currentMonth === 0) {
       setCurrentYear((y) => y - 1)
       setCurrentMonth(11)
@@ -95,6 +97,7 @@ function CalendarContent() {
   }
 
   const handleNextMonth = () => {
+    setLoading(true)
     if (currentMonth === 11) {
       setCurrentYear((y) => y + 1)
       setCurrentMonth(0)

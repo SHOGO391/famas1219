@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { Suspense, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,7 +11,8 @@ import { Loader2, DoorOpen } from "lucide-react"
 
 type Mode = "login" | "signup"
 
-export default function LoginPage() {
+function LoginForm() {
+  const searchParams = useSearchParams()
   const [mode, setMode] = useState<Mode>("login")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -27,14 +28,14 @@ export default function LoginPage() {
     setMessage("")
 
     const trimmedEmail = email.trim()
-    const trimmedPassword = password.trim()
 
     try {
       if (mode === "signup") {
-        await authSignUp(trimmedEmail, trimmedPassword)
-        router.replace("/")
+        const user = await authSignUp(trimmedEmail, password)
+        if (user) router.replace("/")
+        else setMessage("確認メールを開いて登録を完了してからログインしてください。")
       } else {
-        await authSignIn(trimmedEmail, trimmedPassword)
+        await authSignIn(trimmedEmail, password)
         router.replace("/")
       }
     } catch (err) {
@@ -58,6 +59,11 @@ export default function LoginPage() {
           </h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {searchParams.get("logout") === "unconfirmed" && (
+              <p role="alert" className="text-sm text-destructive">
+                サーバー側のログアウトを確認できませんでした。接続を確認し、再ログインしてログアウトをやり直してください。
+              </p>
+            )}
             <div className="space-y-2">
               <Label htmlFor="email">メールアドレス</Label>
               <Input
@@ -121,4 +127,8 @@ export default function LoginPage() {
       </Card>
     </div>
   )
+}
+
+export default function LoginPage() {
+  return <Suspense fallback={<p>読み込み中...</p>}><LoginForm /></Suspense>
 }
