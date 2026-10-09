@@ -1,7 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { useState } from "react"
+import { usePathname, useRouter } from "next/navigation"
 import {
   Home,
   DoorOpen,
@@ -29,13 +30,20 @@ function isItemActive(href: string, pathname: string): boolean {
 
 export function SideNav() {
   const pathname = usePathname()
+  const router = useRouter()
+  const [loggingOut, setLoggingOut] = useState(false)
 
   // ログイン画面ではナビを出さない
   if (pathname === "/login") return null
 
-  function handleLogout() {
-    authSignOut()
-    window.location.href = "/login"
+  async function handleLogout() {
+    setLoggingOut(true)
+    try {
+      await authSignOut()
+      router.replace("/login")
+    } catch {
+      router.replace("/login?logout=unconfirmed")
+    } finally { setLoggingOut(false) }
   }
 
   return (
@@ -69,6 +77,7 @@ export function SideNav() {
       <div className="px-3 py-4 border-t border-border">
         <button
           onClick={handleLogout}
+          disabled={loggingOut}
           className="flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
         >
           <LogOut className="h-5 w-5 shrink-0" />

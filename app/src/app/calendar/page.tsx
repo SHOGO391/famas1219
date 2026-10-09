@@ -210,15 +210,15 @@ function CalendarContent() {
   const nextYear = currentMonth === 11 ? currentYear + 1 : currentYear
 
   useEffect(() => {
-    setLoading(true)
-    // 当月＋翌月の予約をまとめて取得（2枚表示のドット用）
+    let active = true
     Promise.all([
       fetchReservationsByMonth(currentYear, currentMonth),
       fetchReservationsByMonth(nextYear, nextMonth),
     ])
-      .then(([curr, next]) => setReservations([...curr, ...next]))
-      .catch(() => setReservations([]))
-      .finally(() => setLoading(false))
+      .then(([curr, next]) => { if (active) setReservations([...curr, ...next]) })
+      .catch(() => { if (active) setReservations([]) })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
   }, [currentYear, currentMonth, nextYear, nextMonth])
 
   const reservationsByDate = useMemo(() => {
@@ -239,6 +239,7 @@ function CalendarContent() {
   }
 
   const handlePrevMonth = () => {
+    setLoading(true)
     if (currentMonth === 0) {
       setCurrentYear((y) => y - 1)
       setCurrentMonth(11)
@@ -249,6 +250,7 @@ function CalendarContent() {
   }
 
   const handleNextMonth = () => {
+    setLoading(true)
     if (currentMonth === 11) {
       setCurrentYear((y) => y + 1)
       setCurrentMonth(0)
